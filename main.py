@@ -65,5 +65,6 @@ def summarize(text: str):
 
 @app.post("/summarize")
 def summarize_api(request: URLRequest):
-    summary = summarize(request.url)
+    website_text = fetch_website_contents(request.url)
+    summary = summarize(website_text)
     return {"summary": summary}
