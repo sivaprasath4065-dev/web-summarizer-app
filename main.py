@@ -6,12 +6,15 @@ from openai import OpenAI
 from scraper import fetch_website_contents
 from llm import get_llm
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi import Request
 
 
 load_dotenv()
 
 app = FastAPI()
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,6 +22,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+templates = Jinja2Templates(directory="templates")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 # Gemini OpenAI-compatible endpoint
 client = OpenAI(
@@ -62,7 +70,9 @@ def summarize(text: str):
     prompt = f"Summarize this:\n\n{text}"
     return llm.generate(prompt)
 
-
+@app.get("/", response_class=HTMLResponse)
+def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 @app.post("/summarize")
 def summarize_api(request: URLRequest):
     website_text = fetch_website_contents(request.url)
