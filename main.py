@@ -10,11 +10,15 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
-
+import time
 
 load_dotenv()
 
 app = FastAPI()
+
+last_request_time = 0
+COOLDOWN_SECONDS = 15
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -75,6 +79,20 @@ def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 @app.post("/summarize")
 def summarize_api(request: URLRequest):
+    global last_request_time
+
+    current_time = time.time()
+
+    # Check cooldown
+    if current_time - last_request_time < COOLDOWN_SECONDS:
+        remaining = int(COOLDOWN_SECONDS - (current_time - last_request_time))
+        return {
+            "error": f"⏳ Please wait {remaining} seconds before making another request."
+        }
+
+    last_request_time = current_time
+
     website_text = fetch_website_contents(request.url)
     summary = summarize(website_text)
+
     return {"summary": summary}
